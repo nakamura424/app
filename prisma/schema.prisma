@@ -13,7 +13,7 @@ model M_STORE {
   branch_name  String?
   address      String?
   created_user String
-  created_time String         @default("CURRENT_TIMESTAMP")
+  created_time DateTime          @default(now())
   accountings  T_ACCOUNTING[]
   unit_prices  T_UNIT_PRICE[]
 }
@@ -29,7 +29,7 @@ model M_SUBJECT {
   unit                 String?        @default("個")
   quantity_of_per_unit Int?           @default(1)
   created_user         String
-  created_time         String         @default("CURRENT_TIMESTAMP")
+  created_time         DateTime          @default(now())
   accountings          T_ACCOUNTING[]
 
   @@unique([major_cd, middle_cd, minor_cd], map: "sqlite_autoindex_M_SUBJECT_1")
@@ -43,7 +43,7 @@ model T_UNIT_PRICE {
   base_date    Int
   unit_price   Float
   created_user String
-  created_time String  @default("CURRENT_TIMESTAMP")
+  created_time DateTime   @default(now())
   store        M_STORE @relation(fields: [store_id], references: [store_id])
 
   @@id([major_cd, middle_cd, minor_cd, store_id, base_date])
