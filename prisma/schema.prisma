@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./Expeses.db"
+  url      = "file:./Expenses.db"
 }
 
 model M_STORE {
