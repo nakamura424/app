@@ -1,0 +1,71 @@
+/* ハンバーガーメニューのアニメーション */
+.navbar-dark .navbar-toggler {
+  border: 2px solid #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  position: relative;
+  width: 36px;
+  height: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s;
+  background: transparent;
+}
+
+.navbar-dark .navbar-toggler span {
+  display: block;
+  height: 4px;
+  background-color: #fff;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+/* ハンバーガー開閉アニメーション */
+.navbar-dark .navbar-toggler.collapsed span:nth-child(1) { transform: rotate(0) translateY(0); }
+.navbar-dark .navbar-toggler.collapsed span:nth-child(2) { opacity: 1; }
+.navbar-dark .navbar-toggler.collapsed span:nth-child(3) { transform: rotate(0) translateY(0); }
+
+.navbar-dark .navbar-toggler:not(.collapsed) span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.navbar-dark .navbar-toggler:not(.collapsed) span:nth-child(2) { opacity: 0; }
+.navbar-dark .navbar-toggler:not(.collapsed) span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
+
+/* ドロップダウン */
+.dropdown-menu-end {
+  background-color: #2c2c3c !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  padding: 10px 0;
+  transform: translateY(-10px);
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.dropdown.show .dropdown-menu {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.dropdown-item {
+  color: #fff !important;
+  padding: 8px 20px;
+}
+
+.dropdown-item:hover {
+  background-color: #444 !important;
+}
+
+/* カード・ボタン */
+.card-body {
+  background-color: #fff;
+}
+
+.btn-outline-dark {
+  border-color: #333;
+  color: #333;
+}
+
+.btn-outline-dark:hover {
+  background-color: #333;
+  color: #fff;
+}

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>単価グラフ</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<style>
+.offcanvas-body a { color:#fff; display:flex; align-items:center; padding:12px 20px; text-decoration:none; font-weight:500; transition: all 0.2s;}
+.offcanvas-body a i { margin-right:10px; font-size:1.2rem; }
+.offcanvas-body a:hover { background-color:#444; }
+.offcanvas-body .logout { color:#ff5c5c !important; margin-top:20px; }
+.card-body { background-color:#fff; border-radius:12px; }
+.chart-card { max-height:480px; overflow-y:hidden; } /* 縦幅調整 */
+.main-content { padding-top: 3rem; margin: 2rem auto; }
+</style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">☰</button>
+    <span class="navbar-brand ms-3">単価グラフ</span>
+  </div>
+</nav>
+
+<!-- Offcanvas サイドバー -->
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasMenu">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-tAitle">Expenses</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <a href="/menu"><i class="bi bi-house-door"></i> メインメニュー</a>
+    <a href="/chart"><i class="bi bi-graph-up"></i> 単価グラフ</a>
+    <a href="/shopping_register"><i class="bi bi-pencil-square"></i> 買い物登録</a>
+    <a href="/check_cost"><i class="bi bi-pie-chart-fill"></i> 支出確認</a>
+    <a href="/logout" class="logout"><i class="bi bi-box-arrow-right"></i> ログアウト</a>
+  </div>
+</div>
+
+<div class="container main-content">
+  <div class="row mb-3">
+    <div class="col">
+      <label class="form-label">科目</label>
+      <select id="subjectSelect" class="form-select">
+        <option value="">科目を選択</option>
+        <% 
+          // subjectsの中でminor_cdがあるものだけを小項目として表示
+          subjects.filter(s=>s.minor_cd!==null).forEach(s=>{
+            // 大項目 > 中項目 > 小項目 表示
+            const major = subjects.find(m=>m.major_cd===s.major_cd && m.middle_cd===null);
+            const middle = subjects.find(m=>m.major_cd===s.major_cd && m.middle_cd===s.middle_cd && m.minor_cd===null);
+            const label = `${major.subject_name} > ${middle.subject_name} > ${s.subject_name}`;
+        %>
+          <option value="<%= [s.major_cd,s.middle_cd,s.minor_cd].join(',') %>"><%= label %></option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+
+  <div class="row mb-3 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">開始日</label>
+      <input type="date" id="startDate" class="form-control">
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">終了日</label>
+      <input type="date" id="endDate" class="form-control">
+    </div>
+
+    <div class="col-md-3">
+      <button id="filterBtn" class="btn btn-dark w-100">
+        期間で更新
+      </button>
+    </div>
+  </div>
+
+  <div class="card shadow chart-card p-3">
+    <canvas id="myChart"></canvas>
+  </div>
+</div>
+
+<script>
+const startInput = document.getElementById('startDate');
+const endInput = document.getElementById('endDate');
+const filterBtn = document.getElementById('filterBtn');
+const subjectSelect = document.getElementById('subjectSelect');
+
+let chart;
+
+// 今日
+const today = new Date();
+const oneYearAgo = new Date();
+oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+function formatDate(date){
+  return date.toISOString().split('T')[0];
+}
+
+startInput.value = formatDate(oneYearAgo);
+endInput.value = formatDate(today);
+
+function loadChart(){
+  const subject = subjectSelect.value;
+  if(!subject) return;
+
+  const start = startInput.value.replaceAll('-',''); // yyyymmdd化
+  const end   = endInput.value.replaceAll('-','');
+
+  axios.get('/api/unit_prices', {
+    params:{
+      subject: subject,
+      startDate: start,
+      endDate: end
+    }
+  })
+  .then(res=>{
+    const data = res.data;
+    const stores = {};
+
+    data.forEach(d=>{
+      if(!stores[d.store.store_name]){
+        stores[d.store.store_name] = [];
+      }
+      stores[d.store.store_name].push({
+        date:d.base_date,
+        value:d.unit_price
+      });
+    });
+
+    const labels = [...new Set(data.map(d=>d.base_date))].sort((a,b)=>a-b);
+
+    const datasets = Object.keys(stores).map(store=>({
+      label: store,
+      data: labels.map(l=>{
+        const item = stores[store].find(d=>d.date===l);
+        return item ? item.value : null;
+      }),
+      borderColor:`hsl(${Math.random()*360},70%,40%)`,
+      backgroundColor:'transparent',
+      tension:0.3,
+      spanGaps:true
+    }));
+
+    if(chart) chart.destroy();
+
+    const ctx = document.getElementById('myChart').getContext('2d');
+    chart = new Chart(ctx,{
+      type:'line',
+      data:{labels,datasets},
+      options:{
+        maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom'}},
+        scales:{
+          x:{title:{display:true,text:'日付'}},
+          y:{title:{display:true,text:'単価'}}
+        }
+      }
+    });
+  });
+}
+
+subjectSelect.addEventListener('change', loadChart);
+filterBtn.addEventListener('click', loadChart);
+</script>
+
+</body>
+</html>

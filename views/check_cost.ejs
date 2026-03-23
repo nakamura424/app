@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>支出確認（円グラフ）</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.offcanvas-body a {
+  color:#fff;
+  display:flex;
+  align-items:center;
+  padding:12px 20px;
+  text-decoration:none;
+  font-weight:500;
+  transition: all 0.2s;
+}
+.offcanvas-body a i {
+  margin-right:10px;
+  font-size:1.2rem;
+}
+.offcanvas-body a:hover {
+  background-color:#444;
+}
+.offcanvas-body .logout {
+  color:#ff5c5c !important;
+  margin-top:20px;
+}
+
+/* グラフ中央寄せ */
+.chart-card {
+  height: 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* ★ 正方形ラッパー */
+.chart-wrapper {
+  width: 420px;
+  height: 420px;
+  position: relative;
+}
+
+</style>
+</head>
+
+<body class="bg-light">
+
+<!-- ナビバー -->
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">☰</button>
+    <span class="navbar-brand ms-3">支出確認</span>
+  </div>
+</nav>
+
+<!-- サイドバー -->
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasMenu">
+  <div class="offcanvas-header">
+    <h5>Expenses</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <a href="/menu"><i class="bi bi-house-door"></i> メインメニュー</a>
+    <a href="/chart"><i class="bi bi-graph-up"></i> 単価グラフ</a>
+    <a href="/shopping_register"><i class="bi bi-pencil-square"></i> 買い物登録</a>
+    <a href="/check_cost"><i class="bi bi-pie-chart-fill"></i> 支出確認</a>
+    <a href="/logout" class="logout"><i class="bi bi-box-arrow-right"></i> ログアウト</a>
+  </div>
+</div>
+
+
+
+<!-- メイン -->
+<div class="container my-5 pt-5">
+<div class="row mb-4 justify-content-start g-3">
+  <!-- 対象月 -->
+  <div class="col-auto text-center">
+    <label for="monthPicker" class="form-label fw-semibold fs-5 text-secondary">対象月</label>
+    <input type="month" id="monthPicker" 
+           class="form-control form-control-lg border border-secondary shadow-sm" 
+           style="background-color:#f8f9fa; color:#495057; font-weight:600;"
+           value="<%= targetMonth ? targetMonth.toString().slice(0,4) + '-' + ('0'+(targetMonth%100)).slice(-2) : '' %>">
+  </div>
+
+  <!-- 支払方法 -->
+  <div class="col-auto text-center">
+    <label for="paymentSelect" class="form-label fw-semibold fs-5 text-secondary">支払方法</label>
+    <select id="paymentSelect" class="form-select form-select-lg border border-secondary shadow-sm"
+            style="background-color:#f8f9fa; color:#495057; font-weight:600;">
+      <option value="">全て</option>
+      <% paymentMethods.forEach(pm => { %>
+        <option value="<%= pm.major_cd %>" <%= selectedMajorCd == pm.major_cd ? 'selected' : '' %>><%= pm.subject_name %></option>
+      <% }); %>
+    </select>
+  </div>
+</div>
+
+
+
+  <div class="card shadow chart-card">
+    <div class="chart-wrapper">
+      <canvas id="costPieChart"></canvas>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  /* =============================
+    サーバー → EJS → JS
+  ============================= */
+  const rawData = <%- JSON.stringify(resultList) %>;
+
+  /*
+  rawData 例:
+  [
+    {
+      major_cd,
+      middle_cd,
+      major_subject_name,
+      subject_name,
+      total_amount
+    }
+  ]
+  */
+
+  /* =============================
+    大項目ごとに集計（クライアント側）
+  ============================= */
+  const majorMap = {};
+
+  rawData.forEach(row => {
+    if (!majorMap[row.major_cd]) {
+      majorMap[row.major_cd] = {
+        major_subject_name: row.major_subject_name,
+        total: 0,
+        details: []
+      };
+    }
+
+    majorMap[row.major_cd].total += row.total_amount;
+    majorMap[row.major_cd].details.push({
+      subject_name: row.subject_name,
+      amount: row.total_amount
+    });
+  });
+
+  const majors = Object.values(majorMap);
+  const labels = majors.map(m => m.major_subject_name);
+  const totals = majors.map(m => m.total);
+  const grandTotal = totals.reduce((a, b) => a + b, 0);
+
+  /* =============================
+    中央合計表示プラグイン
+  ============================= */
+  const centerTextPlugin = {
+    id: 'centerText',
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0);
+      if (!meta?.data?.length) return;
+
+      const { ctx } = chart;
+      const { x, y } = meta.data[0];
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillStyle = '#666';
+      ctx.fillText('合計', x, y - 14);
+
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillStyle = '#000';
+      ctx.fillText(`${grandTotal.toLocaleString()} 円`, x, y + 14);
+
+      ctx.restore();
+    }
+  };
+
+  /* =============================
+    円グラフ描画
+  ============================= */
+  const ctx = document.getElementById('costPieChart').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: totals }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true, // ★ これ必須
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              const major = majors[context.dataIndex];
+              const lines = [];
+              lines.push(`${major.major_subject_name}: ${major.total.toLocaleString()} 円`);
+              major.details.forEach(d => {
+                lines.push(`  ・${d.subject_name}: ${d.amount.toLocaleString()} 円`);
+              });
+              return lines;
+            }
+          }
+        }
+      }
+    },
+    plugins: [centerTextPlugin]
+  });
+
+  // datepicker
+
+  const monthPicker = document.getElementById('monthPicker');
+
+  monthPicker.addEventListener('change', () => {
+    const val = monthPicker.value; // "YYYY-MM"
+    const yyyymm = parseInt(val.replace('-', ''), 10);
+    const url = new URL(window.location.href);
+    url.searchParams.set('target_month', yyyymm);
+    window.location.href = url.toString();
+  });
+  
+  const paymentSelect = document.getElementById('paymentSelect');
+
+  function reloadWithQuery() {
+    const monthValue = monthPicker.value; // "2025-12"
+    const majorCd = paymentSelect.value;
+
+    if (!monthValue) return;
+
+    const targetMonth = parseInt(monthValue.replace('-', ''), 10);
+
+    const query = new URLSearchParams();
+    query.set('target_month', targetMonth);
+    if (majorCd) query.set('major_cd', majorCd);
+
+    window.location = `/check_cost?${query.toString()}`;
+  }
+
+  paymentSelect.addEventListener('change', reloadWithQuery);
+</script>
+
+</body>
+</html>

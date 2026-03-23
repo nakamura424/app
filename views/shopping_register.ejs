@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>買い物登録</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .offcanvas-body a {
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .offcanvas-body a i { margin-right: 10px; font-size: 1.2rem; }
+    .offcanvas-body a:hover { background-color: #444; }
+    .offcanvas-body .logout { color: #ff5c5c !important; margin-top: 20px; }
+    .card-body { background-color: #fff; border-radius: 12px; }
+    
+    /* ===== ステップナビ ===== */
+    .step-nav {
+      display: grid;
+      
+      grid-template-columns:
+        minmax(10%, 2fr)
+        minmax(3%, 1fr)
+        minmax(10%, 2fr)
+        minmax(3%, 1fr)
+        minmax(10%, 2fr)
+        minmax(3%, 1fr)
+        minmax(10%, 2fr)
+      ;
+
+      gap: 0;
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+
+    .step-item {
+      text-align: center;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #dee2e6;
+      letter-spacing: 0.05em;
+    }
+
+    .step-interval {
+      text-align: center;
+      color: #6c757d;
+      font-weight: 600;
+    }
+
+    .step-item.current {
+      color: #212529;
+      font-weight: 600;
+      border-bottom: 3px solid #212529;
+    }
+
+
+    /* 商品列幅調整 */
+    .itemRow .d-flex {
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .itemRow .d-flex > .itemSelect,
+    .itemRow .d-flex > .middleSelect,
+    .itemRow .d-flex > .customItem {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .itemRow .toggleInputBtn {
+      flex: 0 0 32px;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+    .itemRow .toggleInputBtn i {
+      color: #28a745;
+      font-size: 1.2rem;
+    }
+    
+    
+    
+    .btn-primary {
+      background-color: #4a78c2;
+      border-color: #4a78c2;
+    }
+
+    .btn-primary:hover {
+      background-color: #3967aa;
+      border-color: #3967aa;
+    }
+
+
+
+
+
+  </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">☰</button>
+    <span class="navbar-brand ms-3">買い物登録</span>
+  </div>
+</nav>
+
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasMenu">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Expenses</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <a href="/menu"><i class="bi bi-house-door"></i> メインメニュー</a>
+    <a href="/chart"><i class="bi bi-graph-up"></i> 単価グラフ</a>
+    <a href="/shopping_register"><i class="bi bi-pencil-square"></i> 買い物登録</a>
+    <a href="/check_cost"><i class="bi bi-pie-chart-fill"></i> 支出確認</a>
+    <a href="/logout" class="logout"><i class="bi bi-box-arrow-right"></i> ログアウト</a>
+  </div>
+</div>
+
+<div class="container my-5 pt-5 min-vh-container" width="80%">
+
+  <!-- ステップナビ -->
+  <div class="step-nav mb-4 col-lg-10 mx-auto">
+    <div class="step-item current">お買い物登録</div>
+    <div class="step-interval"> ＞ </div>
+    <div class="step-item">商品登録</div>
+    <div class="step-interval"> ＞ </div>
+    <div class="step-item">単価登録</div>
+    <div class="step-interval"> ＞ </div>
+    <div class="step-item">登録内容確認</div>
+  </div>
+
+
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow">
+        <div class="card-body">
+          <h5 class="card-title mb-4 text-center">★お買い物登録★</h5>
+          <form id="accountingForm">
+            <div class="mb-3">
+              <label>取引日</label>
+              <input type="date" id="baseDate" class="form-control" value="<%= today %>">
+            </div>
+            <div class="mb-3">
+              <label>店舗</label>
+              <select id="storeSelect" class="form-select">
+                <% stores.forEach(s => { %>
+                  <option value="<%= s.store_id %>"><%= s.store_name + " " + s.branch_name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label>支払方法</label>
+              <select id="paymentSelect" class="form-select">
+                <% payment_subjects.forEach(s => { %>
+                  <option value="<%= s.subject_id %>"><%= s.subject_name %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <!-- 商品明細テーブル -->
+            <table class="table" id="itemsTable">
+              <thead>
+                <tr>
+                  <th>商品</th>
+                  <th>個数</th>
+                  <th>金額（円）</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="itemRow">
+                  <td>
+                    <div class="d-flex">
+                      <!-- 小項目選択 -->
+                      <select class="form-select itemSelect">
+                        <option value="">選択してください</option>
+                        <% subjects.forEach(s => { %>
+                          <option value="<%= [s.major_cd, s.middle_cd, s.minor_cd].join(',') %>"><%= s.label %></option>
+                        <% }) %>
+                      </select>
+                      <!-- 手入力モード -->
+                      <select class="form-select middleSelect" style="display:none;">
+                        <option value="">中項目を選択</option>
+                        <% middleSubjects.forEach(s => { %>
+                          <option value="<%= [s.major_cd, s.middle_cd].join(',') %>"><%= s.label %></option>
+                        <% }) %>
+                      </select>
+                      <input type="text" class="form-control customItem" placeholder="小項目を手入力" style="display:none;">
+                      <input type="hidden" class="form-control isUnknown" value="0">
+                      <button type="button" class="toggleInputBtn" title="手入力に切替">
+                        <i class="bi bi-arrow-repeat"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td><input type="number" class="form-control quantity" min="1" placeholder="個数"></td>
+                  <td><input type="number" class="form-control amount" min="0" placeholder="金額"></td>
+                  <td><button type="button" class="btn btn-danger removeRow">削除</button></td>
+                </tr>
+              </tbody>
+            </table>
+
+
+            <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+              <button type="button"
+                      class="btn btn-outline-secondary"
+                      onclick="location.href='/menu'">
+                ＜ 戻る
+              </button>
+
+              <button type="submit"
+                      class="btn btn-primary px-4">
+                次へ ＞
+              </button>
+            </div>
+
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const itemsTable = document.getElementById('itemsTable').querySelector('tbody');
+
+itemsTable.addEventListener('click', e => {
+  const row = e.target.closest('tr');
+  if (!row) return;
+
+  // 削除
+  if (e.target.classList.contains('removeRow')) {
+    if (itemsTable.querySelectorAll('tr').length > 1) row.remove();
+  }
+
+  // 手入力切替
+  if (e.target.closest('.toggleInputBtn')) {
+    const select = row.querySelector('.itemSelect');
+    const middleSelect = row.querySelector('.middleSelect');
+    const input = row.querySelector('.customItem');
+    const isUnknown = row.querySelector('.isUnknown');
+    if (input.style.display === 'none') {
+      // 手入力モード
+      select.style.display = 'none';
+      middleSelect.style.display = 'block';
+      input.style.display = 'block';
+      isUnknown.value = '1';
+    } else {
+      // 選択モード
+      select.style.display = 'block';
+      middleSelect.style.display = 'none';
+      input.style.display = 'none';
+      isUnknown.value = '0';
+    }
+  }
+});
+
+// 送信
+document.getElementById('accountingForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const rows = Array.from(itemsTable.querySelectorAll('tr'));
+  const items = rows.map(row => {
+    const select = row.querySelector('.itemSelect');
+    const middleSelect = row.querySelector('.middleSelect');
+    const input = row.querySelector('.customItem');
+    return {
+      subject: input.style.display === 'block' ? null : select.value,
+      middle_cd: middleSelect.style.display === 'block' ? middleSelect.value : null,
+      custom_subject: input.style.display === 'block' ? input.value : null,
+      quantity: parseInt(row.querySelector('.quantity').value) || 0,
+      amount: parseFloat(row.querySelector('.amount').value) || 0,
+      isUnknown: parseInt(row.querySelector('.isUnknown').value) || 0
+    };
+  });
+
+  const data = {
+    base_date: document.getElementById('baseDate').value,
+    store_id: parseInt(document.getElementById('storeSelect').value),
+    payment_subject_id: parseInt(document.getElementById('paymentSelect').value),
+    items
+  };
+
+  try {
+    await axios.post('/api/accounting', data);
+    // 登録後に subject_register へ遷移
+    window.location.href = '/subject_register';
+  } catch (err) {
+    console.error(err);
+    alert('登録に失敗しました');
+  }
+});
+// 自動行追加
+itemsTable.addEventListener('change', e => {
+  const target = e.target;
+  const row = target.closest('tr');
+  if (!row) return;
+
+  const itemSelect = row.querySelector('.itemSelect');
+  const middleSelect = row.querySelector('.middleSelect');
+  const customItem = row.querySelector('.customItem');
+
+  const isItemSelected = target.classList.contains('itemSelect') && target.value !== '';
+  const isMiddleSelected = target.classList.contains('middleSelect') && middleSelect.value !== '' && customItem.value.trim() !== '';
+  const isCustomEntered = target.classList.contains('customItem') && customItem.value.trim() !== '' && middleSelect.value.trim() !== '';
+
+  // 行追加条件
+  if (isItemSelected || isMiddleSelected || isCustomEntered) {
+    const newRow = row.cloneNode(true);
+
+    // --- 初期化処理 ---
+    const newItemSelect = newRow.querySelector('.itemSelect');
+    newItemSelect.style.display = 'block';
+    newItemSelect.value = '';
+
+    const newMiddleSelect = newRow.querySelector('.middleSelect');
+    newMiddleSelect.value = middleSelect.value;
+    newMiddleSelect.style.display = 'none';
+
+    const newCustomItem = newRow.querySelector('.customItem');
+    newCustomItem.style.display = 'none';
+    newCustomItem.value = '';
+
+    newRow.querySelector('.quantity').value = '';
+    newRow.querySelector('.amount').value = '';
+    newRow.querySelector('.isUnknown').value = '0';
+
+    itemsTable.appendChild(newRow);
+  }
+});
+
+</script>
+</body>
+</html>

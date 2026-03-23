@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>買い物登録</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .offcanvas-body a {
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .offcanvas-body a i { margin-right: 10px; font-size: 1.2rem; }
+    .offcanvas-body a:hover { background-color: #444; }
+    .offcanvas-body .logout { color: #ff5c5c !important; margin-top: 20px; }
+    .card-body { background-color: #fff; border-radius: 12px; }
+    
+    
+    /* ===== ステップナビ ===== */
+    .step-nav {
+      display: grid;
+      
+      grid-template-columns:
+        minmax(10%, 2fr)
+        minmax(3%, 1fr)
+        minmax(10%, 2fr)
+        minmax(3%, 1fr)
+        minmax(10%, 2fr)
+        minmax(3%, 1fr)
+        minmax(10%, 2fr)
+      ;
+
+      gap: 0;
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+
+    .step-item {
+      text-align: center;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #dee2e6;
+      letter-spacing: 0.05em;
+    }
+
+    .step-interval {
+      text-align: center;
+      color: #6c757d;
+      font-weight: 600;
+    }
+
+    .step-item.current {
+      color: #212529;
+      font-weight: 600;
+      border-bottom: 3px solid #212529;
+    }
+
+    .btn-primary {
+      background-color: #4a78c2;
+      border-color: #4a78c2;
+    }
+
+    .btn-primary:hover {
+      background-color: #3967aa;
+      border-color: #3967aa;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">☰</button>
+    <span class="navbar-brand ms-3">買い物登録</span>
+  </div>
+</nav>
+
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasMenu">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Expenses</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <a href="/menu"><i class="bi bi-house-door"></i> メインメニュー</a>
+    <a href="/chart"><i class="bi bi-graph-up"></i> 単価グラフ</a>
+    <a href="/shopping_register"><i class="bi bi-pencil-square"></i> 買い物登録</a>
+    <a href="/check_cost"><i class="bi bi-pie-chart-fill"></i> 支出確認</a>
+    <a href="/logout" class="logout"><i class="bi bi-box-arrow-right"></i> ログアウト</a>
+  </div>
+</div>
+
+<div class="container my-5 pt-5" width="80%">
+    <!-- ステップナビ -->
+  <div class="step-nav mb-4 col-lg-10 mx-auto">
+    <div class="step-item">お買い物登録</div>
+    <div class="step-interval"> ＞ </div>
+    <div class="step-item current">商品登録</div>
+    <div class="step-interval"> ＞ </div>
+    <div class="step-item">単価登録</div>
+    <div class="step-interval"> ＞ </div>
+    <div class="step-item">登録内容確認</div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow">
+        <div class="card-body">
+          <h5 class="card-title mb-4 text-center">★商品登録★</h5>
+          <form id="subjectForm">
+
+            <!-- 商品明細テーブル -->
+            <table class="table" id="subjectTable">
+              <thead>
+                <tr>
+                  <th colspan="3">商品</th>
+                  <th class="w-50">購入単位（集計量/単位）</th>
+                </tr>
+              </thead>
+              <tbody>  
+                <% if (unknownEntries.length === 0) { %>
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                      新規登録が必要な科目はありません
+                    </td>
+                  </tr>
+                <% } else { %>
+                  <% unknownEntries.forEach(entry => { %>
+                    <tr class="subjectRow">
+                      <td>
+                        <%= entry.major_label %>
+                        <input type="hidden" class="major_cd" value="<%= entry.major_cd %>">
+                      </td>
+                      <td>
+                        <%= entry.middle_label %>
+                        <input type="hidden" class="middle_cd" value="<%= entry.middle_cd %>">
+                      </td>
+                      <td>
+                        <%= entry.subject_name %>
+                        <input type="hidden" class="minor_cd" value="<%= entry.minor_cd %>">
+                        <input type="hidden" class="subject_name" value="<%= entry.subject_name %>">
+                      </td>
+                      <td>
+                        <div class="d-flex gap-2">
+                          <input type="number" class="form-control w-75 quantity_of_per_unit" min="1" placeholder="個数" value="<%= entry.quantity_of_per_unit %>">
+                          <input type="text" class="form-control w-25 unit" placeholder="単位（g, 個など）" value="<%= entry.unit %>">
+                        </div>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+            <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+              <button type="button"
+                      class="btn btn-outline-secondary"
+                      onclick="history.back()">
+                ＜ 戻る
+              </button>
+
+              <button type="submit"
+                      class="btn btn-primary px-4">
+                次へ ＞
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const subjectsTable = document.getElementById('subjectTable').querySelector('tbody');
+
+// 送信
+document.getElementById('subjectForm').addEventListener('submit', async e => {
+  console.log('Submitting subject registration form');
+  e.preventDefault();
+
+  const rows = Array.from(subjectsTable.querySelectorAll('tr'));
+
+  // ★ データ行だけ抽出（hidden input を持つ行のみ）
+  const dataRows = rows.filter(row => row.querySelector('.major_cd'));
+
+  // ★ データ行が0件なら subjects = []
+  const subjects = dataRows.map(row => {
+    const major_cd = row.querySelector('.major_cd')?.value ?? null;
+    const middle_cd = row.querySelector('.middle_cd')?.value ?? null;
+    const minor_cd = row.querySelector('.minor_cd')?.value ?? null;
+    const subject_name = row.querySelector('.subject_name')?.value ?? null;
+    const unit = row.querySelector('.unit')?.value ?? null;
+    const quantity_of_per_unit =
+      parseInt(row.querySelector('.quantity_of_per_unit')?.value) || 0;
+
+    return {
+      major_cd,
+      middle_cd,
+      minor_cd,
+      subject_name,
+      unit,
+      quantity_of_per_unit
+    };
+  });
+
+  console.log("送信 subjects:", subjects);
+
+  try {
+    await axios.post('/api/subject', subjects); // 空配列でも送信される
+    window.location.href = '/unit_register';
+  } catch (err) {
+    console.error(err);
+    alert('登録に失敗しました');
+  }
+});
+
+</script>
+</body>
+</html>

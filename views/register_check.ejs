@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>買い物登録</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .offcanvas-body a {
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .offcanvas-body a i { margin-right: 10px; font-size: 1.2rem; }
+    .offcanvas-body a:hover { background-color: #444; }
+    .offcanvas-body .logout { color: #ff5c5c !important; margin-top: 20px; }
+    .card-body { background-color: #fff; border-radius: 12px; }
+  </style>
+</head>
+
+<body class="bg-light">
+
+
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">☰</button>
+    <span class="navbar-brand ms-3">買い物登録</span>
+  </div>
+</nav>
+
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasMenu">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Expenses</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <a href="/menu"><i class="bi bi-house-door"></i> メインメニュー</a>
+    <a href="/chart"><i class="bi bi-graph-up"></i> 単価グラフ</a>
+    <a href="/shopping_register"><i class="bi bi-pencil-square"></i> 買い物登録</a>
+    <a href="/check_cost"><i class="bi bi-pie-chart-fill"></i> 支出確認</a>
+    <a href="/logout" class="logout"><i class="bi bi-box-arrow-right"></i> ログアウト</a>
+  </div>
+</div>
+
+
+<div class="container my-5 pt-5" style="width: 80%;">
+
+  <h3 id="pageTitle" class="mb-2">登録内容確認</h3>
+  <p id="pageMessage">以下の内容を登録します。</p>
+
+  <!-- ================= 基本情報 ================= -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">基本情報</div>
+    <div class="card-body">
+      <table class="table table-sm">
+        <tr>
+          <th>日付</th>
+          <td><%= accounting_data.base_date %></td>
+        </tr>
+        <tr>
+          <th>店舗ID</th>
+          <td><%= accounting_data.store_name %></td>
+        </tr>
+        <tr>
+          <th>支払方法ID</th>
+          <td><%= accounting_data.payment_subject_name %></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= 会計明細 ================= -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">会計明細</div>
+    <div class="card-body p-0">
+      <table class="table table-bordered mb-0 text-center align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="w-50"colspan="3">品目</th>
+            <th>数量</th>
+            <th>金額（円）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% accountingEntries.forEach((entry, index) => { %>
+            <tr>
+              <td>
+                <%= entry.minor_subject ? entry.major_subject : '' %>
+              </td>
+              <td>
+                <%= entry.minor_subject ? entry.middle_subject : '（未設定）' %>
+              </td>
+              <td>
+                <%= entry.minor_subject ? entry.minor_subject : '' %>
+              </td>
+              <td><%= entry.quantity %></td>
+              <td><%= entry.amount %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= 科目データ ================= -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">科目データ</div>
+
+    <% if (subject_data.length === 0) { %>
+      <div class="card-body">
+        <p class="text-muted mb-0">科目データはありません。</p>
+      </div>
+    <% } else { %>
+      <div class="card-body p-0">
+        <table class="table table-bordered mb-0 text-center align-middle">
+          <thead class="table-light">
+            <tr>
+              <th colspan="3">商品</th>
+              <th class="w-50">購入単位（集計量/単位）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% subject_data.forEach(subject => { %>
+              <tr>
+                <td><%= subject.major_subject ?? '-' %></td>
+                <td><%= subject.middle_subject ?? '-' %></td>
+                <td><%= subject.minor_subject ?? '-' %></td>
+                <td><%= subject.quantity_of_per_unit ?? '-' %><%= subject.unit ?? '-' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+
+  </div>
+
+
+  <!-- ================= 単価一覧 ================= -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">単価情報</div>
+    <div class="card-body p-0">
+      <table class="table table-bordered mb-0 text-center">
+        <thead class="table-light">
+          <tr>
+            <th colspan="3">品目</th>
+            <th class="w-50">単価（円）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% unit_list.forEach(unit => { %>
+            <tr>
+            <tr>
+              <td>
+                <%= unit.minor_subject ? unit.major_subject : '' %>
+              </td>
+              <td>
+                <%= unit.minor_subject ? unit.middle_subject : '（未設定）' %>
+              </td>
+              <td>
+                <%= unit.minor_subject ? unit.minor_subject : '' %>
+              </td>
+              <td><%= unit.unit_price %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= ボタン ================= -->
+  <div class="d-flex justify-content-between mb-5">
+    <a href="/shopping_register" class="btn btn-secondary">やりなおし</a>
+    <button type="button" id="registerBtn"class="btn btn-primary">登録する</button>
+  </div>
+
+</div>
+<!-- 完了ダイアログ（OKボタンのみ） -->
+<div class="modal fade" id="completeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title text-success">
+          <i class="bi bi-check-circle-fill me-2"></i>登録完了
+        </h5>
+      </div>
+
+      <div class="modal-body">
+        登録が正常に完了しました。
+      </div>
+
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-primary btn-lg px-5"
+                id="completeOkBtn">
+          OK
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('registerBtn').addEventListener('click', async () => {
+    try {
+      // 登録処理（サーバー側は res.json を返す）
+      await axios.post('/api/register_execute');
+
+      // ===== 文言を書き換え =====
+      document.getElementById('pageTitle').textContent = '登録完了';
+      document.getElementById('pageMessage').textContent = '登録が完了しました。';
+
+      // ===== ボタン切り替え =====
+      const btnArea = document.getElementById('registerBtn').parentElement;
+      btnArea.className = 'd-flex justify-content-end mb-5';
+      btnArea.innerHTML = `
+        <a href="/menu" class="btn btn-primary pull-right">メニューへ</a>
+      `;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // 完了ダイアログ表示
+      completeModal.show();
+
+
+    } catch (err) {
+      console.error(err);
+      alert('登録に失敗しました');
+    }
+  });
+const completeModalEl = document.getElementById('completeModal');
+const completeModal = new bootstrap.Modal(completeModalEl);
+
+document.getElementById('completeOkBtn').addEventListener('click', () => {
+  completeModal.hide();
+});
+
+</script>
+</body>
+</html>

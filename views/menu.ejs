@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>メインメニュー</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <style>
+    /* ===== 共通 ===== */
+    .offcanvas-body a {
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background-color .2s;
+    }
+    .offcanvas-body a i { margin-right: 10px; font-size: 1.2rem; }
+    .offcanvas-body a:hover { background-color: #444; }
+    .offcanvas-body .logout { color: #ff5c5c !important; margin-top: 20px; }
+
+    /* ===== レイアウト ===== */
+    .menu-container {
+      min-height: calc(100vh - 70px);
+      padding-top: 9rem;
+    }
+
+    /* ===== 左メニュー ===== */
+    .menu-item {
+      padding: 20px;
+      font-size: 1.05rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ===== 右プレビュー ===== */
+    .menu-preview {
+      background: #f8f9fa;
+      border-radius: 16px;
+      min-height: 60vh;
+      padding: 32px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .menu-preview img {
+      max-width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      margin-bottom: 24px;
+    }
+
+    /* 初期表示は少し上寄せ */
+    .menu-placeholder {
+      margin-top: 120px;
+      font-size: 1.2rem;
+      color: #666;
+    }
+
+    /* 詳細表示は中央寄せ */
+    #menuDetail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    /* ===== フェード＋ズーム ===== */
+    .fade-zoom {
+      opacity: 0;
+      transform: scale(0.96);
+      transition:
+        opacity 0.35s ease,
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: opacity, transform;
+    }
+
+    .fade-zoom.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .list-group-item.active {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .list-group-item.active i {
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body class="bg-light">
+
+<!-- ===== ナビバー ===== -->
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container-fluid">
+    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
+      ☰
+    </button>
+    <span class="navbar-brand ms-3">メインメニュー</span>
+  </div>
+</nav>
+
+<!-- ===== Offcanvas ===== -->
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasMenu">
+  <div class="offcanvas-header">
+    <h5>Expenses</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <a href="/menu"><i class="bi bi-house-door"></i> メインメニュー</a>
+    <a href="/chart"><i class="bi bi-graph-up"></i> 単価グラフ</a>
+    <a href="/shopping_register"><i class="bi bi-pencil-square"></i> 買い物登録</a>
+    <a href="/check_cost"><i class="bi bi-pie-chart-fill"></i> 支出確認</a>
+    <a href="/logout" class="logout"><i class="bi bi-box-arrow-right"></i> ログアウト</a>
+  </div>
+</div>
+
+<!-- ===== コンテンツ ===== -->
+<div class="container-fluid menu-container">
+  <div class="px-4">
+    <div class="row justify-content-center">
+      <div class="col-12 col-xxl-10">
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+
+            <h5 class="text-center mb-4">
+              ようこそ、<strong><%= user %></strong> さん
+            </h5>
+
+            <div class="row g-4 align-items-stretch">
+
+              <!-- 左：メニュー -->
+              <div class="col-md-4">
+                <div class="list-group">
+
+                  <a href="/chart"
+                     class="list-group-item list-group-item-action menu-item"
+                     data-title="単価グラフ"
+                     data-text="商品の単価推移をグラフで確認できます"
+                     data-img="/img/chart.png">
+                    <i class="bi bi-graph-up me-2"></i> 単価グラフ
+                  </a>
+
+                  <a href="/shopping_register"
+                     class="list-group-item list-group-item-action menu-item"
+                     data-title="買い物登録"
+                     data-text="日々の買い物を登録します"
+                     data-img="/img/register.png">
+                    <i class="bi bi-pencil-square me-2"></i> 買い物登録
+                  </a>
+
+                  <a href="/check_cost"
+                     class="list-group-item list-group-item-action menu-item"
+                     data-title="支出確認"
+                     data-text="月ごとの支出内訳を確認できます"
+                     data-img="/img/cost.png">
+                    <i class="bi bi-pie-chart-fill me-2"></i> 支出確認
+                  </a>
+
+                </div>
+              </div>
+
+              <!-- 右：説明 -->
+              <div class="col-md-8">
+                <div class="menu-preview">
+
+                  <!-- 初期表示 -->
+                  <div id="menuDefault" class="menu-placeholder fade-zoom show">
+                    左メニューから選んでください
+                  </div>
+
+                  <!-- hover表示 -->
+                  <div id="menuDetail" class="fade-zoom d-none">
+                    <img id="menuPreviewImg" src="" alt="">
+                    <h6 id="menuPreviewTitle"></h6>
+                    <p id="menuPreviewText" class="text-muted"></p>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== JS ===== -->
+<script>
+  const defaultBox = document.getElementById('menuDefault');
+  const detailBox  = document.getElementById('menuDetail');
+  const titleEl    = document.getElementById('menuPreviewTitle');
+  const textEl     = document.getElementById('menuPreviewText');
+  const imgEl      = document.getElementById('menuPreviewImg');
+
+  const menuItems = document.querySelectorAll('.menu-item');
+
+  function showDefault() {
+    detailBox.classList.remove('show');
+    setTimeout(() => {
+      detailBox.classList.add('d-none');
+      defaultBox.classList.remove('d-none');
+      requestAnimationFrame(() => defaultBox.classList.add('show'));
+    }, 200);
+  }
+
+  menuItems.forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      defaultBox.classList.remove('show');
+      defaultBox.classList.add('d-none');
+
+      titleEl.textContent = item.dataset.title;
+      textEl.textContent  = item.dataset.text;
+      imgEl.src           = item.dataset.img;
+
+      detailBox.classList.remove('d-none');
+      requestAnimationFrame(() => detailBox.classList.add('show'));
+    });
+
+    item.addEventListener('mouseleave', () => {
+      const hovering = [...menuItems].some(el => el.matches(':hover'));
+      if (!hovering) showDefault();
+    });
+  });
+</script>
+
+</body>
+</html>
