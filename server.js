@@ -654,6 +654,7 @@ app.get('/check_cost', async (req, res) => {
   }
 });
 
+app.get('/structure', (req, res) => res.render('structure'));
 
 
 app.get('/logout', (req, res) => {
